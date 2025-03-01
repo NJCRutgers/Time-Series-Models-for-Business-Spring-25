@@ -1,0 +1,130 @@
+---
+title: "Assignment4"
+output: html_document
+date: "2025-02-28"
+---
+# Exploratory Analysis & Initial Setup (Some Headers Don't Work)\
+```{r}
+library(ggplot2)
+library(fpp)
+library(fpp2)
+library(TTR)
+
+# Getting the CSV into usable data
+housingdata <- read.csv("C:/Users/woodb/OneDrive/Documents/College Files/Spring 25/Time Series Models For Business/ASPUS/Average Sales Price of Houses Sold for the US.csv", sep = ",", header = 1)
+
+# Converting the data into a time series for when we need it
+housingseries <- ts(housingdata$ASPUS,start=c(1963,1),end=c(2024,4), frequency=4)
+
+# Basic plot of the time series
+plot(housingdata$ASPUS, col="white") + lines(housingdata$ASPUS, col="black")
+
+# Auto-correlation, shows that the date and price aren't super highly correlated but are still relevant enough (ASPUS & Observation date is slightly higher than observation date & ASPUS)
+acf(housingdata)
+
+# Decomposition shows that the data gets a little wonky at around 2000, but starts to get really crazy at around 2008: This definitely has something to do with the housing crisis & real estate bubble popping around that time. It's a little surprising that it hasn't managed to recover since then, though. 
+housingdecomp <- decompose(housingseries)
+plot(housingdecomp)
+```
+\
+Running Models \
+```{r}
+library(ggplot2)
+library(fpp)
+library(fpp2)
+library(TTR)
+# Getting the CSV into usable data
+housingdata <- read.csv("C:/Users/woodb/OneDrive/Documents/College Files/Spring 25/Time Series Models For Business/ASPUS/Average Sales Price of Houses Sold for the US.csv", sep = ",", header = 1)
+
+# Converting the data into a time series for when we need it
+housingseries <- ts(housingdata$ASPUS,start=c(1963,1),end=c(2024,4), frequency=4)
+
+
+meanf(housingseries,5)
+naive(housingseries,5)
+snaive(housingseries,5)
+rwf(housingseries,5)
+rwf(housingseries,5,drift=TRUE)
+ma(housingseries,order=9)
+HoltWinters(housingseries)
+plot(ets(housingseries))
+
+```
+\
+Model Explanation \
+The MeanF model was absolutely abyssmal because it took into account the older data just as much as the newest data, skewing it massively. I fully expect this to be the least accurate model. 
+
+The Naive model is fairly accurate, all things considered, though the exact accuracy can only really be determined after the data point comes in. I have more faith in the seasonal naive model, because it uses a little more calculation than the normal naive model.
+
+The random-walk-drift model is decent, but not acceptable. The random walk with drift isn't much better, so I don't think I'd be wanting to use these models of prediction for anything serious. The fact that Seasonal Naive forecasting is about even with it is astounding.
+
+The moving average has fairly minimal residuals and seems to be generally accurate. If the market remains stable, moving average with a window of 9 seems very accurate for predicting how much a home will cost.
+
+Holt-Winters is probably not a very good pick for a series of data like this due to the rapid change in the nature of the data, though it always does look very nice on a graph. I'd probably use this as a companion to the moving average 9 model.
+
+The decomposition here specifically shows the slope as its own graph which is very helpful as it shows spikes of growth or decline relative to the data itself. It's very interesting to see the slope decrease in 2008 and spike up like crazy in 2020. Looking at the trend of the slope, though, it means that the market'll probably be relatively stable for the foreseeable future. 
+
+# Plotting Time Series & Different Forecasts Together
+```{r}
+library(ggplot2)
+library(fpp)
+library(fpp2)
+library(TTR)
+# Getting the CSV into usable data
+housingdata <- read.csv("C:/Users/woodb/OneDrive/Documents/College Files/Spring 25/Time Series Models For Business/ASPUS/Average Sales Price of Houses Sold for the US.csv", sep = ",", header = 1)
+
+# Converting the data into a time series for when we need it
+housingseries <- ts(housingdata$ASPUS,start=c(1963,1),end=c(2024,4), frequency=4)
+
+mean_f <- meanf(housingseries,5)
+naive_f <- naive(housingseries,5)
+snaive_f <- snaive(housingseries,5)
+rwf_f <- rwf(housingseries,5)
+rwfd_f <- rwf(housingseries,5,drift=TRUE)
+ma9 <- ma(housingseries,order=9)
+
+plot(housingseries, col="red")
+lines(mean_f$mean,col="black")
+lines(naive_f$mean,col="green")
+lines(snaive_f$mean,col="aquamarine")
+lines(rwf_f$mean, col="purple")
+lines(rwfd_f$mean, col="yellow")
+lines(ma9,col="orange")
+```
+\
+# Accuracy Measure & Analysis
+```{r}
+library(ggplot2)
+library(fpp)
+library(fpp2)
+library(TTR)
+# Getting the CSV into usable data
+housingdata <- read.csv("C:/Users/woodb/OneDrive/Documents/College Files/Spring 25/Time Series Models For Business/ASPUS/Average Sales Price of Houses Sold for the US.csv", sep = ",", header = 1)
+
+# Converting the data into a time series for when we need it
+housingseries <- ts(housingdata$ASPUS,start=c(1963,1),end=c(2024,4), frequency=4)
+
+# Looking at residuals of 2019 - 2023 as a measure of accuracy. I'd do 2020 to 2024, but MA9 doesn't have 2024 data.
+
+# mean_f is terrible, I'm not even going to record these values, they're in the hundreds of thousands
+mean_f <- residuals(meanf(housingseries,5))
+
+# Highest residual was 39400, lowest residual was -23600, average was 5715; Not very good, but good for napkin math
+naive <- residuals(naive(housingseries,5))
+
+# Highest was 99800, lowest was -22700, average was 24930; Less suitable than normal Naive, despite my assumptions
+naive_seas<- residuals(snaive(housingseries,5))
+
+# Highest was 39400, lowest was -23600, average was 5715; somehow worse range than naive, but the same average
+rwf <- residuals(rwf(housingseries,5))
+
+# Highest was 37412, lowest was -25587, average was 3727; worse range, but a better average than normal rwf
+rwfdrift <- residuals(rwf(housingseries,5,drift=TRUE))
+
+# Highest was 28733, lowest was -22411, average was -482; Though the range is high, the average is absolutely incredible for the sample size.
+ma9_res <- housingseries - ma(housingseries,order=9)
+
+# Highest was 38466, lowest was -26185, average was 3286; A fairly solid average comparable to rwfdrift, though it's nowhere near as good as moving average.
+holtwint<- residuals(HoltWinters(housingseries))
+```
+Based on the accuracy comparison of checking residuals from 2019 to 2023, Moving Average 9 is the best one to use for the dataset.
