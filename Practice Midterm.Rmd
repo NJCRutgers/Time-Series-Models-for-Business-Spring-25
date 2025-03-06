@@ -1,0 +1,35 @@
+---
+title: "PracticeMidterm1"
+output: html_document
+date: "2025-03-03"
+---
+```{r}
+library(fpp)
+library(fpp2)
+library(zoo)
+
+plot(arrivals)
+test <- data.frame(arrivals)
+print(test)
+colnames(test) <- c('Japan', 'NZ', 'UK', 'US')
+timeseries <- ts(test$US, start = 1981, end = 2012, frequency = 4)
+timeseries
+plot(timeseries)
+# The travel to Australia steadily increased over time, with a very sharp increase in about 1987 to 1989, generally increasing over time, with spikes in particular seasons indicating that people prefer to go there during certain times of the year.
+
+fivenum(timeseries)
+# 23.721  63.554  85.473 109.865 136.094
+boxplot(timeseries)
+# As the trend is generally increasing, it's not a surprise that most data is within a fairly high portion representing both the highs and lows of the later data. The long tail at the bottom shows that there's more spread-out data towards the lower end, showing a generally increasing trend over time.
+
+plot(decompose(timeseries))
+# The time series is insanely seasonal in nature, representing the time of year someone would want to go to Australia. Because the seasonality is static, it's additive.
+plot(decompose(timeseries, type="additive"))
+# (They're the same, so that means it's additive.)
+# The seasonal indices show that people really like to go during quarter 1 and quarter 4, and don't really like to go during quarter 3 and quarter 4, matching the climate of the United States; people would want to go somewhere warm during Fall & Winter, and wouldn't want to go to the place famously known for being hot when it's already hot in your home country. 
+timeseries_decomp <- decompose(timeseries, type="additive")
+plot(timeseries) + lines((timeseries - timeseries_decomp$seasonal), col="red")
+
+plot(naive(timeseries))
+
+```
