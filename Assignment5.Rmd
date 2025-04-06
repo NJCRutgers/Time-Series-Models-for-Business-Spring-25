@@ -1,0 +1,44 @@
+---
+title: "Assignment4"
+output: html_document
+date: "2025-02-28"
+---
+```{r}
+library(ggplot2)
+library(fpp)
+library(fpp2)
+library(forecast)
+library(TTR)
+
+# Getting the CSV into usable data
+housingdata <- read.csv("C:/Users/woodb/OneDrive/Documents/College Files/Spring 25/Time Series Models For Business/ASPUS/Average Sales Price of Houses Sold for the US.csv", sep = ",", header = 1)
+
+# Converting the data into a time series
+housingseries <- ts(housingdata$ASPUS,start=c(1963,1),end=c(2024,4), frequency=4)
+
+# ARIMA
+auto_fit <- auto.arima(housingseries, trace=TRUE, stepwise = TRUE)
+# Best model is ARIMA(3,2,2)(1,0,1)[4]
+# (3, 2, 2) tells us that we use a lag of 3, a difference number of 2, and a moving average of 2 regarding the non-seasonal component.
+# (1, 0, 1) tells us that we only use a lag of 1, don't difference the seasonal data, and use the previous forecast from 1 season ago 
+
+coef(auto_fit)
+#  ar1         ar2         ar3         ma1         ma2         
+# -0.80014181  0.05569588  0.25532547 -0.36615994 -0.61705675 
+# sar1             sma1
+#  -0.55116990     0.85032457
+# These show us the actual values of each AR and MA for both the non-seasonal and seasonal components, respectively
+
+
+# Residuals
+Acf(auto_fit$residuals)
+Box.test(residuals(auto_fit), lag=20, type="Ljung")
+plot.ts(residuals(auto_fit))
+hist(auto_fit$residuals)
+tsdiag(auto_fit)
+
+# Plotted forecast for next 5 periods with ARIMA
+plot(forecast(auto_fit,h=5,level=c(99.5)))
+
+# Other than the MAPE being somehow >2, this is pretty good. I don't know how to get the MAPE to go lower, so I'll be sure to ask you during class after presentation stuff is done
+accuracy(auto_fit)
